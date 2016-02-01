@@ -1,4 +1,4 @@
-package centricular.com.salvini;
+package com.centricular.salvini;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context="centricular.com.salvini.TuneActivity"
+    tools:context="com.centricular.salvini.TuneActivity"
     android:background="@drawable/main_bg">
 
     <android.support.design.widget.AppBarLayout

@@ -1,4 +1,4 @@
-package centricular.com.salvini;
+package com.centricular.salvini;
 
 
 import android.annotation.TargetApi;

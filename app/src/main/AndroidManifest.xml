@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="centricular.com.salvini">
+    package="com.centricular.salvini">
 
     <application
         android:allowBackup="true"
@@ -24,7 +24,7 @@
             android:parentActivityName=".TuneActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="centricular.com.salvini.TuneActivity" />
+                android:value="com.centricular.salvini.TuneActivity" />
         </activity>
     </application>
 
