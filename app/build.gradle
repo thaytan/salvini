@@ -25,9 +25,9 @@ android {
 
     task buildNative(type: Exec, description: 'Compile JNI source via NDK') {
         def ndkDir = android.ndkDirectory
-        environment GSTREAMER_SDK_ROOT_ANDROID: "/home/jan/cerbero/dist/android_armv7"
+        environment GSTREAMER_SDK_ROOT_ANDROID: System.getenv('GSTREAMER_SDK_ROOT_ANDROID')
         commandLine "$ndkDir/ndk-build",
-                '-C', file('src/main/jni').absolutePath,
+                '-C', file('src/main').absolutePath,
                 '-j', Runtime.runtime.availableProcessors(),
                 'all',
                 'NDK_DEBUG=1', 'APP_PLATFORM=android-19 '
@@ -37,7 +37,7 @@ android {
         def ndkDir = android.ndkDirectory
         environment GSTREAMER_SDK_ROOT_ANDROID: "/home/jan/cerbero/dist/android_armv7"
         commandLine "$ndkDir/ndk-build",
-                '-C', file('src/main/jni').absolutePath,
+                '-C', file('src/main').absolutePath,
                 'clean'
     }
 

@@ -38,8 +38,6 @@ static pthread_key_t current_jni_env;
 static JavaVM *java_vm;
 static jfieldID custom_data_field_id;
 static jmethodID set_message_method_id;
-static jmethodID set_current_position_method_id;
-static jmethodID set_current_state_method_id;
 static jmethodID on_gstreamer_initialized_method_id;
 
 /*
@@ -98,26 +96,9 @@ set_ui_message (const gchar * message, CustomData * data)
   (*env)->DeleteLocalRef (env, jmessage);
 }
 
-static void
-set_current_ui_position (gint position, gint duration, CustomData * data)
-{
-  JNIEnv *env = get_jni_env ();
-//  GST_DEBUG ("Setting current position/duration to: %d / %d (ms)", position, duration);
-  (*env)->CallVoidMethod (env, data->app, set_current_position_method_id,
-      position, duration);
-  if ((*env)->ExceptionCheck (env)) {
-    GST_ERROR ("Failed to call Java method");
-    (*env)->ExceptionClear (env);
-  }
-}
-
 static gboolean
 refresh_ui (CustomData * data)
 {
-#if 0
-  set_current_ui_position (data->position / GST_MSECOND,
-      data->duration / GST_MSECOND, data);
-#endif
   return TRUE;
 }
 
@@ -230,7 +211,7 @@ gst_native_init (JNIEnv * env, jobject thiz)
 {
   CustomData *data = g_new0 (CustomData, 1);
 
-  gst_debug_set_threshold_from_string ("*aurena*:6", FALSE);
+  gst_debug_set_threshold_from_string ("*salvini*:6", FALSE);
 
   data->duration = GST_CLOCK_TIME_NONE;
   SET_CUSTOM_DATA (env, thiz, custom_data_field_id, data);
@@ -299,22 +280,14 @@ gst_class_init (JNIEnv * env, jclass klass)
       (*env)->GetMethodID (env, klass, "setMessage", "(Ljava/lang/String;)V");
   GST_DEBUG ("The MethodID for the setMessage method is %p",
       set_message_method_id);
-  set_current_position_method_id =
-      (*env)->GetMethodID (env, klass, "setCurrentPosition", "(II)V");
-  GST_DEBUG ("The MethodID for the setCurrentPosition method is %p",
-      set_current_position_method_id);
+
   on_gstreamer_initialized_method_id =
       (*env)->GetMethodID (env, klass, "onGStreamerInitialized", "()V");
   GST_DEBUG ("The MethodID for the onGStreamerInitialized method is %p",
       on_gstreamer_initialized_method_id);
-  set_current_state_method_id =
-      (*env)->GetMethodID (env, klass, "setCurrentState", "(I)V");
-  GST_DEBUG ("The MethodID for the setCurrentState method is %p",
-      set_current_state_method_id);
 
   if (!custom_data_field_id || !set_message_method_id
-      || !set_current_position_method_id
-      || !on_gstreamer_initialized_method_id || !set_current_state_method_id) {
+      || !on_gstreamer_initialized_method_id) {
     GST_ERROR
         ("The calling class does not implement all necessary interface methods");
     return JNI_FALSE;
@@ -357,12 +330,9 @@ gst_native_surface_finalize (JNIEnv * env, jobject thiz)
 static JNINativeMethod native_methods[] = {
   {"nativeInit", "()V", (void *) gst_native_init},
   {"nativeFinalize", "()V", (void *) gst_native_finalize},
-  {"nativePlay", "(Ljava/lang/String;)V", (void *) gst_native_play},
-  {"nativePause", "()V", (void *) gst_native_pause},
+//  {"nativePlay", "(Ljava/lang/String;)V", (void *) gst_native_play},
+//  {"nativePause", "()V", (void *) gst_native_pause},
   {"classInit", "()Z", (void *) gst_class_init},
-  {"nativeSurfaceInit", "(Ljava/lang/Object;)V",
-      (void *) gst_native_surface_init},
-  {"nativeSurfaceFinalize", "()V", (void *) gst_native_surface_finalize}
 };
 
 jint
@@ -370,8 +340,8 @@ JNI_OnLoad (JavaVM * vm, void *reserved)
 {
   JNIEnv *env = NULL;
 
-  GST_DEBUG_CATEGORY_INIT (debug_category, "android-aurena", 0,
-      "Android Aurena");
+  GST_DEBUG_CATEGORY_INIT (debug_category, "salvini", 0,
+      "Salvini RTTA");
 
   java_vm = vm;
 
@@ -380,7 +350,7 @@ JNI_OnLoad (JavaVM * vm, void *reserved)
     return 0;
   }
   jclass klass = (*env)->FindClass (env,
-      "net/noraisin/android_aurena/AndroidAurena");
+      "com/centricular/salvini/TuneActivity");
   (*env)->RegisterNatives (env, klass, native_methods,
       G_N_ELEMENTS (native_methods));
 

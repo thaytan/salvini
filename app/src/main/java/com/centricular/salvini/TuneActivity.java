@@ -9,16 +9,26 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
-//import org.freedesktop.gstreamer.GStreamer;
+import org.freedesktop.gstreamer.GStreamer;
 
 public class TuneActivity extends AppCompatActivity {
+    private static native boolean classInit();
+    private native void nativeInit();
+    private native void nativeFinalize();
+    private long native_custom_data;
+
+    static {
+            System.loadLibrary("gstreamer_android");
+                System.loadLibrary("android-salvini");
+            classInit();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         try {
-            //GStreamer.init(this);
+            GStreamer.init(this);
         } catch (Exception e) {
             Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
             finish();
@@ -38,6 +48,21 @@ public class TuneActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+    }
+
+    /* Called from native code */
+    private void setMessage(final String message) {
+//        final TextView tv = (TextView) this.findViewById(R.id.textview_message);
+        runOnUiThread (new Runnable() {
+            public void run() {
+            /* Disable until we have got rid of non-fatal errors */
+            /*tv.setText(message);*/
+            }
+        });
+    }
+
+    /* Called from native code */
+    private void onGStreamerInitialized () {
     }
 
     @Override
