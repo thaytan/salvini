@@ -9,17 +9,20 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+import android.widget.TextView;
 import org.freedesktop.gstreamer.GStreamer;
 
 public class TuneActivity extends AppCompatActivity {
     private static native boolean classInit();
     private native void nativeInit();
     private native void nativeFinalize();
+    private native void nativePlay();
+    private native void nativePause();
     private long native_custom_data;
 
     static {
             System.loadLibrary("gstreamer_android");
-                System.loadLibrary("android-salvini");
+            System.loadLibrary("android-salvini");
             classInit();
     }
 
@@ -48,21 +51,28 @@ public class TuneActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+        nativeInit();
+    }
+
+    protected void onDestroy() {
+        nativeFinalize();
+        super.onDestroy();
     }
 
     /* Called from native code */
     private void setMessage(final String message) {
-//        final TextView tv = (TextView) this.findViewById(R.id.textview_message);
+        final TextView tv = (TextView) this.findViewById(R.id.contentTextView);
         runOnUiThread (new Runnable() {
             public void run() {
-            /* Disable until we have got rid of non-fatal errors */
-            /*tv.setText(message);*/
+            tv.setText(message);
             }
         });
     }
 
     /* Called from native code */
     private void onGStreamerInitialized () {
+      nativePlay();
     }
 
     @Override
