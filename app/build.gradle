@@ -25,12 +25,14 @@ android {
 
     task buildNative(type: Exec, description: 'Compile JNI source via NDK') {
         def ndkDir = android.ndkDirectory
+        def GST_PLUGIN_VERSION = android.defaultConfig.versionCode
         environment GSTREAMER_SDK_ROOT_ANDROID: System.getenv('GSTREAMER_SDK_ROOT_ANDROID')
         commandLine "$ndkDir/ndk-build",
                 '-C', file('src/main').absolutePath,
                 '-j', Runtime.runtime.availableProcessors(),
                 'all',
-                'NDK_DEBUG=1', 'APP_PLATFORM=android-19 '
+                'NDK_DEBUG=1', 'APP_PLATFORM=android-19',
+                'GST_PLUGIN_VERSION=\\\"' + GST_PLUGIN_VERSION + '\\\"'
     }
 
     task cleanNative(type: Exec, description: 'Clean JNI object files') {
