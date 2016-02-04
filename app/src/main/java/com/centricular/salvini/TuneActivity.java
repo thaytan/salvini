@@ -11,6 +11,8 @@ import android.view.View;
 import android.widget.Toast;
 import android.widget.TextView;
 import org.freedesktop.gstreamer.GStreamer;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TuneActivity extends AppCompatActivity {
     private static native boolean classInit();
@@ -66,6 +68,23 @@ public class TuneActivity extends AppCompatActivity {
         runOnUiThread (new Runnable() {
             public void run() {
             tv.setText(message);
+            }
+        });
+    }
+
+    private void onNewNoteInfo(final HashMap<String,Object> noteInfo) {
+        final TextView tv = (TextView) this.findViewById(R.id.contentTextView);
+        final Object[] summary = (Object[]) noteInfo.get("summary");
+
+        runOnUiThread (new Runnable() {
+            public void run() {
+                String res = "";
+                for (Object o : summary) {
+                  @SuppressWarnings("unchecked")
+                    Map<String, Object> e = (HashMap<String,Object>) o;
+                  res = res + e.toString() + "\n";
+                }
+                tv.setText (res);
             }
         });
     }

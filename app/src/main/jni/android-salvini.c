@@ -30,7 +30,7 @@ typedef struct _CustomData
   gint64 position;
   gint64 duration;
   gboolean initialized;
-  GstElement *pipe;
+  GstElement *pipe, *rtta;
 } CustomData;
 
 static pthread_t gst_app_thread;
@@ -38,6 +38,7 @@ static pthread_key_t current_jni_env;
 static JavaVM *java_vm;
 static jfieldID custom_data_field_id;
 static jmethodID set_message_method_id;
+static jmethodID on_new_note_info_method_id;
 static jmethodID on_gstreamer_initialized_method_id;
 
 /*
@@ -119,6 +120,137 @@ error_cb (GstBus * bus, GstMessage * msg, CustomData * data)
   g_free (message_string);
 }
 
+static jobject
+_gst_structure_to_hash_map (JNIEnv *env, const GstStructure *s);
+
+static jobject
+_gst_value_to_java (JNIEnv *env, const GValue *v)
+{
+  switch (G_VALUE_TYPE (v)) {
+    case G_TYPE_STRING:
+      return (*env)->NewStringUTF (env, g_value_get_string (v));
+    case G_TYPE_INT: {
+      jclass cls = (*env)->FindClass(env, "java/lang/Integer");
+      jmethodID methodID = (*env)->GetMethodID(env, cls, "<init>", "(I)V");
+      jobject i=(*env)->NewObject(env, cls, methodID, g_value_get_int (v));
+      (*env)->DeleteLocalRef (env, cls);
+      return i;
+    }
+    case G_TYPE_UINT64: {
+      jclass cls = (*env)->FindClass(env, "java/lang/Long");
+      jmethodID methodID = (*env)->GetMethodID(env, cls, "<init>", "(J)V");
+      jobject i=(*env)->NewObject(env, cls, methodID, g_value_get_uint64 (v));
+      (*env)->DeleteLocalRef (env, cls);
+      return i;
+    }
+    case G_TYPE_INT64: {
+      jclass cls = (*env)->FindClass(env, "java/lang/Long");
+      jmethodID methodID = (*env)->GetMethodID(env, cls, "<init>", "(J)V");
+      jobject i=(*env)->NewObject(env, cls, methodID, g_value_get_int64 (v));
+      (*env)->DeleteLocalRef (env, cls);
+      return i;
+    }
+    default:
+        if (G_VALUE_TYPE (v) == GST_TYPE_STRUCTURE) {
+          return _gst_structure_to_hash_map (env, gst_value_get_structure (v));
+        }
+        else if (G_VALUE_TYPE (v) == GST_TYPE_LIST) {
+          int i, n;
+          jobjectArray ja;
+          jclass jobjectClass;
+          jobjectClass = (*env)->FindClass(env, "java/lang/Object");
+
+          n = gst_value_list_get_size (v);
+          ja = (*env)->NewObjectArray(env, n, jobjectClass, NULL);
+
+          for (i = 0; i < n; i++) {
+            jobject lv = _gst_value_to_java (env, gst_value_list_get_value (v,  i));
+            (*env)->SetObjectArrayElement(env, ja, i, lv);
+            (*env)->DeleteLocalRef (env, lv);
+          }
+          (*env)->DeleteLocalRef (env, jobjectClass);
+          return ja;
+        }
+    break;
+  }
+  return NULL;
+}
+
+struct _MapCtx {
+  JNIEnv *env;
+  jobject hashMap;
+  jmethodID put;
+} map_ctx;
+
+static gboolean
+_gst_value_into_map (GQuark field_id, const GValue * value,
+     gpointer user_data)
+{
+  struct _MapCtx *map_ctx = (struct _MapCtx *)(user_data);
+  JNIEnv *env = map_ctx->env;
+  jobject jv = _gst_value_to_java (env, value);
+  jstring jkey = (*env)->NewStringUTF (env, g_quark_to_string (field_id));
+
+  (*env)->CallObjectMethod(env, map_ctx->hashMap, map_ctx->put, jkey, jv);
+  (*env)->DeleteLocalRef (env, jkey);
+  (*env)->DeleteLocalRef (env, jv);
+
+  return TRUE;
+}
+
+static jobject
+_gst_structure_to_hash_map (JNIEnv *env, const GstStructure *s)
+{
+  jclass mapClass = (*env)->FindClass(env, "java/util/HashMap");
+
+  if (mapClass == NULL) {
+     GST_WARNING ("Failed to find Java HashMap class!");
+     return NULL;
+  }
+
+  jsize map_len = gst_structure_n_fields(s);
+  jmethodID init = (*env)->GetMethodID(env, mapClass, "<init>", "(I)V");
+  jobject hashMap = (*env)->NewObject(env, mapClass, init, map_len);
+  jmethodID put = (*env)->GetMethodID(env, mapClass, "put",
+            "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+
+  (*env)->DeleteLocalRef(env, mapClass);
+
+  if (hashMap == NULL) {
+    GST_WARNING ("Failed to create HashMap!");
+    return NULL;
+  }
+
+  struct _MapCtx map_ctx = { env, hashMap, put };
+
+  gst_structure_foreach ((GstStructure *)(s), _gst_value_into_map, &map_ctx);
+
+  return hashMap;
+}
+
+static void
+post_rtta_to_java (CustomData *data, const GstStructure *s)
+{
+  JNIEnv *env = get_jni_env ();
+  jobject hashMap;
+
+  if (!gst_structure_n_fields (s)) {
+    GST_DEBUG ("Empty RTTA message received!");
+    return;
+  }
+
+  hashMap = _gst_structure_to_hash_map (env, s);
+  if (!hashMap)
+    return;
+
+  (*env)->CallVoidMethod (env, data->app, on_new_note_info_method_id, hashMap);
+  if ((*env)->ExceptionCheck (env)) {
+    GST_ERROR ("Failed to call Java method to post new RTTA info");
+    (*env)->ExceptionClear (env);
+  }
+  (*env)->DeleteLocalRef(env, hashMap);
+}
+
 static gboolean
 handle_msg (GstBus * bus, GstMessage * msg, void *user_data)
 {
@@ -130,16 +262,11 @@ handle_msg (GstBus * bus, GstMessage * msg, void *user_data)
       break;
     case GST_MESSAGE_ELEMENT: {
       const GstStructure *structure;
-      const GValue *value;
-      gchar *contents;
 
       structure = gst_message_get_structure (msg);
       if (!structure || !gst_structure_has_name (structure, "rtta"))
         break;
-      value = gst_structure_get_value (structure, "notes");
-      contents = g_strdup_value_contents (value);
-      set_ui_message (contents, data);
-      g_free (contents);
+      post_rtta_to_java (data, structure);
       break;
     }
     default:
@@ -177,6 +304,8 @@ destroy_pipeline (CustomData *data)
 
   gst_element_set_state (data->pipe, GST_STATE_NULL);
   g_source_remove (data->bus_watch_id);
+  gst_object_unref (data->rtta);
+  data->rtta = NULL;
   gst_object_unref (data->pipe);
   data->pipe = NULL;
 }
@@ -268,7 +397,8 @@ gst_native_play (JNIEnv * env, jobject thiz)
   if (!data->pipe) {
     GstBus *bus;
 
-    data->pipe = gst_parse_launch ("openslessrc preset=voice-recognition ! audioconvert ! rtta ! fakesink", NULL);
+    data->pipe = gst_parse_launch ("openslessrc preset=voice-recognition ! audioconvert ! rtta name=rtta ! fakesink", NULL);
+    data->rtta = gst_bin_get_by_name (GST_BIN (data->pipe), "rtta");
     bus = gst_element_get_bus (data->pipe);
     data->bus_watch_id = gst_bus_add_watch (bus, handle_msg, data);
     gst_object_unref (bus);
@@ -300,6 +430,10 @@ gst_class_init (JNIEnv * env, jclass klass)
       (*env)->GetMethodID (env, klass, "setMessage", "(Ljava/lang/String;)V");
   GST_DEBUG ("The MethodID for the setMessage method is %p",
       set_message_method_id);
+  on_new_note_info_method_id =
+      (*env)->GetMethodID (env, klass, "onNewNoteInfo", "(Ljava/util/HashMap;)V");
+  GST_DEBUG ("The MethodID for the onNewNoteInfo method is %p",
+      on_new_note_info_method_id);
 
   on_gstreamer_initialized_method_id =
       (*env)->GetMethodID (env, klass, "onGStreamerInitialized", "()V");
@@ -307,7 +441,7 @@ gst_class_init (JNIEnv * env, jclass klass)
       on_gstreamer_initialized_method_id);
 
   if (!custom_data_field_id || !set_message_method_id
-      || !on_gstreamer_initialized_method_id) {
+      || !on_gstreamer_initialized_method_id || !on_new_note_info_method_id ) {
     GST_ERROR
         ("The calling class does not implement all necessary interface methods");
     return JNI_FALSE;

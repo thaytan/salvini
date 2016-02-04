@@ -314,7 +314,7 @@ gst_rtta_message_new (GstRtta * rtta, GValue * note_list)
       "timestamp", G_TYPE_UINT64, rtta->timestamp,
       "stream-time", G_TYPE_UINT64, stream_time,
       "running-time", G_TYPE_UINT64, running_time, NULL);
-  gst_structure_set_value (s, "notes", note_list);
+  gst_structure_set_value (s, "summary", note_list);
 
   return gst_message_new_element (GST_OBJECT (rtta), s);
 }
