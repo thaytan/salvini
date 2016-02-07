@@ -1,0 +1,8 @@
+<resources>
+    <declare-styleable name="RttaView">
+        <attr name="labelString" format="string" />
+        <attr name="textDimension" format="dimension" />
+        <attr name="textColour" format="color" />
+        <attr name="redColour" format="color" />
+    </declare-styleable>
+</resources>

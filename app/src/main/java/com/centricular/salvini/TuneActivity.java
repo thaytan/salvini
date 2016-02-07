@@ -54,6 +54,15 @@ public class TuneActivity extends AppCompatActivity {
             }
         });
 
+        FloatingActionButton resetFab = (FloatingActionButton) findViewById(R.id.reset);
+        resetFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Snackbar.make(view, "FIXME: Do refresh", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+        });
+
         nativeInit();
     }
 

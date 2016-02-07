@@ -35,21 +35,23 @@
 
         <TextView
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
+            android:layout_height="0dp"
             android:text="Detecting notes"
             android:id="@+id/contentTextView"
             android:textColor="#000000"
             android:textSize="18dp"
-            android:textIsSelectable="true" />
+            android:textIsSelectable="true"
+            android:layout_weight="1" />
 
-        TextureView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/textureView2"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true"
+        <com.centricular.salvini.RttaView
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:id="@+id/tuneView"
             android:layout_gravity="center_horizontal"
-            android:background="#00ffffff" />
+            android:longClickable="true"
+            app:textColour="#33b5e5"
+            app:textDimension="16sp"
+            app:labelString="Hello, RttaView"
+            android:layout_weight="2" />
     </LinearLayout>
 </RelativeLayout>

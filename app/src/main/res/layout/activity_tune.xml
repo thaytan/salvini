@@ -28,4 +28,16 @@
         android:focusableInTouchMode="false"
         app:backgroundTint="#854204" />
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginLeft="@dimen/fab_margin"
+        android:layout_marginBottom="@dimen/fab_margin"
+        android:layout_marginRight="80dp"
+        android:src="@drawable/ic_refresh"
+        android:focusableInTouchMode="false"
+        app:backgroundTint="#854204" />
+
 </android.support.design.widget.CoordinatorLayout>
