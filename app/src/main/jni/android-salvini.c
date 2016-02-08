@@ -355,7 +355,7 @@ gst_native_init (JNIEnv * env, jobject thiz)
 {
   CustomData *data = g_new0 (CustomData, 1);
 
-  GST_PLUGIN_STATIC_REGISTER(rtta);
+  GST_PLUGIN_STATIC_REGISTER(salvini_rtta);
   GST_DEBUG ("Registered RTTA plugin");
 
   data->duration = GST_CLOCK_TIME_NONE;
@@ -397,7 +397,7 @@ gst_native_play (JNIEnv * env, jobject thiz)
   if (!data->pipe) {
     GstBus *bus;
 
-    data->pipe = gst_parse_launch ("openslessrc preset=voice-recognition ! audioconvert ! rtta name=rtta ! fakesink", NULL);
+    data->pipe = gst_parse_launch ("openslessrc preset=voice-recognition ! audioconvert ! salvinirtta name=rtta ! fakesink", NULL);
     data->rtta = gst_bin_get_by_name (GST_BIN (data->pipe), "rtta");
     bus = gst_element_get_bus (data->pipe);
     data->bus_watch_id = gst_bus_add_watch (bus, handle_msg, data);
@@ -417,6 +417,16 @@ gst_native_pause (JNIEnv * env, jobject thiz)
 
   GST_DEBUG ("Stopping RTTA");
   destroy_pipeline(data);
+}
+
+static void
+gst_native_reset (JNIEnv * env, jobject thiz)
+{
+  CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
+
+  if (!data || !data->rtta)
+    return;
+  g_signal_emit_by_name (data->rtta, "reset", NULL);
 }
 
 static jboolean
@@ -454,6 +464,7 @@ static JNINativeMethod native_methods[] = {
   {"nativeFinalize", "()V", (void *) gst_native_finalize},
   {"nativePlay", "()V", (void *) gst_native_play},
   {"nativePause", "()V", (void *) gst_native_pause},
+  {"nativeReset", "()V", (void *) gst_native_reset},
   {"classInit", "()Z", (void *) gst_class_init},
 };
 

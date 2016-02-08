@@ -101,11 +101,15 @@ struct _GstRtta
   int rate;
   int last_rtta_samples;
   GstClockTime timestamp;
+
+  gboolean need_reset;
 };
 
 struct _GstRttaClass
 {
   GstAudioFilterClass parent_class;
+
+  void (*handle_reset) (GstRtta * rtta);
 };
 
 #define DEFAULT_POST_MESSAGES         TRUE
@@ -115,10 +119,20 @@ enum
   PROP_POST_MESSAGES
 };
 
+enum
+{
+  SIGNAL_RESET,
+  LAST_SIGNAL
+};
+
+static guint gst_rtta_signals[LAST_SIGNAL] = { 0 };
+
 #define DEBUG_INIT \
   GST_DEBUG_CATEGORY_INIT (gst_rtta_debug, "rtta", 0, "Template rtta");
 
 G_DEFINE_TYPE_WITH_CODE (GstRtta, gst_rtta, GST_TYPE_AUDIO_FILTER, DEBUG_INIT);
+
+static void gst_rtta_handle_reset (GstRtta *rtta);
 
 G_BEGIN_DECLS static void gst_rtta_finalize (GObject * gobject);
 static gboolean gst_rtta_filter_start (GstBaseTransform * base_transform);
@@ -151,6 +165,8 @@ gst_rtta_class_init (GstRttaClass * klass)
   GstElementClass *element_class = (GstElementClass *) (klass);
   GstBaseTransformClass *btrans_class = (GstBaseTransformClass *) klass;
   GstAudioFilterClass *audio_filter_class = (GstAudioFilterClass *) klass;
+  GstRttaClass *rtta_class = (GstRttaClass *) klass;
+
   GstCaps *caps;
 
   gobject_class->finalize = gst_rtta_finalize;
@@ -178,6 +194,14 @@ gst_rtta_class_init (GstRttaClass * klass)
   btrans_class->stop = gst_rtta_filter_stop;
 
   btrans_class->transform_ip = gst_rtta_filter_inplace;
+
+    gst_rtta_signals[SIGNAL_RESET] =
+        g_signal_new ("reset", G_TYPE_FROM_CLASS (klass),
+        G_SIGNAL_RUN_LAST,
+        G_STRUCT_OFFSET (GstRttaClass, handle_reset), NULL, NULL,
+        g_cclosure_marshal_generic, G_TYPE_NONE, 0, G_TYPE_NONE);
+
+  rtta_class->handle_reset = gst_rtta_handle_reset;
 }
 
 static void
@@ -298,6 +322,14 @@ gst_rtta_setup (GstAudioFilter * filter, const GstAudioInfo * info)
   return TRUE;
 }
 
+static void
+gst_rtta_handle_reset (GstRtta *rtta)
+{
+  GST_OBJECT_LOCK (rtta);
+  rtta->need_reset = TRUE;
+  GST_OBJECT_UNLOCK (rtta);
+}
+
 static GstMessage *
 gst_rtta_message_new (GstRtta * rtta, GValue * note_list)
 {
@@ -376,10 +408,21 @@ gst_rtta_filter_inplace (GstBaseTransform * base_transform, GstBuffer * buf)
   SoundFile *soundfile = rtta->sound_file;
   guint samples_handled = 0;
   GstClockTime basetime;
+  gboolean need_reset;
 
   if (GST_CLOCK_TIME_IS_VALID (GST_BUFFER_PTS (buf)))
     rtta->timestamp = GST_BUFFER_PTS (buf);
   basetime = rtta->timestamp;
+
+  GST_OBJECT_LOCK (rtta);
+  need_reset = rtta->need_reset;
+  rtta->need_reset = FALSE;
+  GST_OBJECT_UNLOCK (rtta);
+
+  if (need_reset) {
+    rtta->last_rtta_samples = 0;
+    rtta->gdata->rtta_data->reset ();
+  }
 
   rtta->stream->submitBuffer (gst_buffer_ref (buf));
 
@@ -404,11 +447,11 @@ gst_rtta_filter_inplace (GstBaseTransform * base_transform, GstBuffer * buf)
 static gboolean
 rtta_init (GstPlugin * rtta)
 {
-  return gst_element_register (rtta, "rtta", GST_RANK_NONE, GST_TYPE_RTTA);
+  return gst_element_register (rtta, "salvinirtta", GST_RANK_NONE, GST_TYPE_RTTA);
 }
 
 GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
-    rtta,
+    salvini_rtta,
     "Real-time Tuning Analysis plugin",
     rtta_init, VERSION, "LGPL", "GStreamer", "http://gstreamer.net/");
