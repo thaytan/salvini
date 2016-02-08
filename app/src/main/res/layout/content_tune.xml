@@ -47,9 +47,9 @@
             android:id="@+id/tuneView"
             android:layout_gravity="center_horizontal"
             android:longClickable="true"
-            app:textColour="#33b5e5"
+            app:textColour="#854204"
             app:textDimension="16sp"
-            app:labelString="Hello, RttaView"
+            app:labelString=""
             android:layout_weight="2" />
     </LinearLayout>
 </RelativeLayout>
