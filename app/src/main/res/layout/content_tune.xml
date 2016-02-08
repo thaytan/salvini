@@ -35,13 +35,11 @@
 
         <TextView
             android:layout_width="fill_parent"
-            android:layout_height="0dp"
-            android:text="Detecting notes"
+            android:layout_height="wrap_content"
             android:id="@+id/contentTextView"
             android:textColor="#000000"
             android:textSize="18dp"
-            android:textIsSelectable="true"
-            android:layout_weight="1" />
+            android:textIsSelectable="true" />
 
         <com.centricular.salvini.RttaView
             android:layout_width="fill_parent"

@@ -21,6 +21,7 @@ public class TuneActivity extends AppCompatActivity {
     private native void nativePlay();
     private native void nativePause();
     private long native_custom_data;
+    private RttaView mRttaView;
 
     static {
             System.loadLibrary("gstreamer_android");
@@ -42,6 +43,8 @@ public class TuneActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_tune);
 
+        mRttaView = (RttaView) findViewById (R.id.tuneView);
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -60,6 +63,7 @@ public class TuneActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, "FIXME: Do refresh", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
+                mRttaView.update(null);
             }
         });
 
@@ -87,13 +91,7 @@ public class TuneActivity extends AppCompatActivity {
 
         runOnUiThread (new Runnable() {
             public void run() {
-                String res = "";
-                for (Object o : summary) {
-                  @SuppressWarnings("unchecked")
-                    Map<String, Object> e = (HashMap<String,Object>) o;
-                  res = res + e.toString() + "\n";
-                }
-                tv.setText (res);
+                mRttaView.update(noteInfo);
             }
         });
     }
