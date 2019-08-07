@@ -1,16 +1,38 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    compileSdkVersion 25
 
     defaultConfig {
         applicationId "com.centricular.salvini"
-        minSdkVersion 15
-        targetSdkVersion 23
+        minSdkVersion 17
+        targetSdkVersion 21
         versionCode 1
         versionName "1.0"
+
+        externalNativeBuild {
+            ndkBuild {
+                def gstRoot
+                def GST_PLUGIN_VERSION = android.defaultConfig.versionCode
+
+                if (project.hasProperty('gstAndroidRoot'))
+                    gstRoot = project.gstAndroidRoot
+                else
+                    gstRoot = System.env.GSTREAMER_ROOT_ANDROID
+
+                if (gstRoot == null)
+                    throw new GradleException('GSTREAMER_ROOT_ANDROID must be set, or "gstAndroidRoot" must be defined in your gradle.properties in the top level directory of the unpacked universal GStreamer Android binaries')
+
+                arguments "NDK_APPLICATION_MK=src/main/jni/Application.mk", "GSTREAMER_JAVA_SRC_DIR=src/main/java", "GSTREAMER_ROOT_ANDROID=$gstRoot", "GSTREAMER_ASSETS_DIR=src/main/assets", "GST_PLUGIN_VERSION=\\\"" + GST_PLUGIN_VERSION + "\\\""
+
+                targets "android_salvini"
+
+                // All archs except MIPS and MIPS64 are supported
+                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            }
+        }
     }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -18,43 +40,23 @@ android {
         }
     }
 
-    sourceSets.main {
-        jni.srcDirs = []
-        jniLibs.srcDir 'src/main/libs'
-    }
-
-    task buildNative(type: Exec, description: 'Compile JNI source via NDK') {
-        def ndkDir = android.ndkDirectory
-        def GST_PLUGIN_VERSION = android.defaultConfig.versionCode
-        environment GSTREAMER_SDK_ROOT_ANDROID: System.getenv('GSTREAMER_SDK_ROOT_ANDROID')
-        commandLine "$ndkDir/ndk-build",
-                '-C', file('src/main').absolutePath,
-                '-j', Runtime.runtime.availableProcessors(),
-                'all',
-                'NDK_DEBUG=1', 'APP_PLATFORM=android-19',
-                'GST_PLUGIN_VERSION=\\\"' + GST_PLUGIN_VERSION + '\\\"'
-    }
-
-    task cleanNative(type: Exec, description: 'Clean JNI object files') {
-        def ndkDir = android.ndkDirectory
-        environment GSTREAMER_SDK_ROOT_ANDROID: "/home/jan/cerbero/dist/android_armv7"
-        commandLine "$ndkDir/ndk-build",
-                '-C', file('src/main').absolutePath,
-                'clean'
-    }
-
-    clean.dependsOn 'cleanNative'
-
-    tasks.withType(JavaCompile) {
-        compileTask -> compileTask.dependsOn buildNative
+    externalNativeBuild {
+        ndkBuild {
+            path 'src/main/jni/Android.mk'
+        }
     }
 }
 
+afterEvaluate {
+    compileDebugJavaWithJavac.dependsOn 'externalNativeBuildDebug'
+    compileReleaseJavaWithJavac.dependsOn 'externalNativeBuildRelease'
+}
+
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:23.1.1'
-    compile 'com.android.support:design:23.1.1'
-    compile 'com.android.support:support-v4:23.1.1'
-    compile 'com.android.support:percent:23.1.1'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    testImplementation 'junit:junit:4.13-beta-3'
+    implementation 'com.android.support:appcompat-v7:26.0.0-alpha1'
+    implementation 'com.android.support:design:26.0.0-alpha1'
+    implementation 'com.android.support:support-v4:26.0.0-alpha1'
+    implementation 'com.android.support:percent:26.0.0-alpha1'
 }

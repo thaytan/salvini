@@ -85,7 +85,7 @@ inline double pow10(double x) { return pow(10.0, x); }
 inline double pow2(double x) { return pow(2.0, x); }
 #endif
 
-#ifdef WINDOWS
+#if defined(WINDOWS) || defined (__ANDROID__)
 //From log rules  log_b(x) = log_a(x) / log_a(b)
 inline double log2(double x) { return log(x) / 0.69314718055994530941723212145818; }
 #endif

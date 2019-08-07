@@ -7,7 +7,7 @@
 GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
 
-GST_PLUGIN_STATIC_DECLARE(rtta);
+GST_PLUGIN_STATIC_DECLARE(salvini_rtta);
 
 /*
  * These macros provide a way to store the native pointer to CustomData, which might be 32 or 64 bits, into

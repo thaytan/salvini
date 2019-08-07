@@ -22,6 +22,8 @@ public class RttaView extends View {
     private int mTextColour = Color.WHITE;
     private float mTextDimension = 16;
 
+    private Paint mPaint;
+
     private TextPaint mTextPaint;
     private float mTextWidth;
     private float mTextHeight;
@@ -67,6 +69,7 @@ public class RttaView extends View {
         mTextDimension = a.getDimension(R.styleable.RttaView_textDimension,  mTextDimension);
 
         a.recycle();
+        mPaint = new Paint();
 
         // Set up a default TextPaint object
         mTextPaint = new TextPaint();
@@ -123,8 +126,7 @@ public class RttaView extends View {
 
         final Object[] summary = (Object[]) mNoteInfo.get("summary");
 
-        Paint curPaint = new Paint();
-        curPaint.setColor(0xFF000000);
+        mPaint.setColor(0xFF000000);
 
         for (Object o : summary) {
            @SuppressWarnings("unchecked")
@@ -150,23 +152,23 @@ public class RttaView extends View {
                 //  Figure this bar length
                 //
                 //	bar_length = (int) (((float) cents) / 50.0) * (float) max_bar_length;
-                curPaint.setStrokeWidth(0.0f);
-                curPaint.setStyle(Paint.Style.FILL);
-                curPaint.setColor(color);
+                mPaint.setStrokeWidth(0.0f);
+                mPaint.setStyle(Paint.Style.FILL);
+                mPaint.setColor(color);
 
                 canvas.drawText(note_name, paddingLeft + 5, ypos + mTextHeight, mTextPaint);
 
                 bar_length = (((float) cents * (float) max_bar_length) / 50.0f);
                 if (bar_length < 0) {
-                    canvas.drawRect(xpos+bar_length,ypos,xpos, ypos + bar_height, curPaint);
-                    curPaint.setStyle(Paint.Style.STROKE);
-                    curPaint.setColor(0xFF000000);
-                    canvas.drawRect(xpos+bar_length,ypos,xpos, ypos + bar_height, curPaint);
+                    canvas.drawRect(xpos+bar_length,ypos,xpos, ypos + bar_height, mPaint);
+                    mPaint.setStyle(Paint.Style.STROKE);
+                    mPaint.setColor(0xFF000000);
+                    canvas.drawRect(xpos+bar_length,ypos,xpos, ypos + bar_height, mPaint);
                 } else {
-                    canvas.drawRect(xpos, ypos, xpos + bar_length, ypos + bar_height, curPaint);
-                    curPaint.setStyle(Paint.Style.STROKE);
-                    curPaint.setColor(0xFF000000);
-                    canvas.drawRect(xpos, ypos, xpos + bar_length, ypos + bar_height, curPaint);
+                    canvas.drawRect(xpos, ypos, xpos + bar_length, ypos + bar_height, mPaint);
+                    mPaint.setStyle(Paint.Style.STROKE);
+                    mPaint.setColor(0xFF000000);
+                    canvas.drawRect(xpos, ypos, xpos + bar_length, ypos + bar_height, mPaint);
                 };
                 //
                 // Down to next bar
@@ -177,11 +179,11 @@ public class RttaView extends View {
         //
         //  Base line
         //
-        curPaint.setColor(0xFF000000);
-        curPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setColor(0xFF000000);
+        mPaint.setStyle(Paint.Style.STROKE);
 
         canvas.drawLine(xpos, mTextHeight + paddingTop,
-                xpos, ypos, curPaint);
+                xpos, ypos, mPaint);
 
     }
 }

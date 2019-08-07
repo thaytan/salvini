@@ -1,16 +1,8 @@
 LOCAL_PATH := $(call my-dir)
-APP_PLATFORM := android-16
 
 include $(CLEAR_VARS)
 
-ifndef GSTREAMER_ROOT
-ifndef GSTREAMER_SDK_ROOT_ANDROID
-$(error GSTREAMER_SDK_ROOT_ANDROID is not defined!)
-endif
-GSTREAMER_ROOT        := $(GSTREAMER_SDK_ROOT_ANDROID)
-endif
-
-LOCAL_MODULE    := android-salvini
+LOCAL_MODULE    := android_salvini
 LOCAL_SRC_FILES := android-salvini.c \
     gstrtta.cpp audio_stream.cpp \
 		tartini/analysisdata.cpp tartini/bspline.cpp \
@@ -29,14 +21,34 @@ LOCAL_SRC_FILES := android-salvini.c \
 		tartini/rtta.cpp
 LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_C_INCLUDES := tartini
-LOCAL_CPPFLAGS := -DGST_PLUGIN_BUILD_STATIC -DVERSION=$(GST_PLUGIN_VERSION) -DPACKAGE=\"Salvini\"
+LOCAL_CPPFLAGS := -DGST_PLUGIN_BUILD_STATIC -DVERSION=\"$(GST_PLUGIN_VERSION)\" -DPACKAGE=\"Salvini\"
 LOCAL_LDLIBS := -landroid
-LOCAL_LDFLAGS := -Wl,-soname=libandroid-salvini.so
+# LOCAL_LDFLAGS := -Wl,-soname=libandroid_salvini.so
 include $(BUILD_SHARED_LIBRARY)
+
+ifndef GSTREAMER_ROOT_ANDROID
+$(error GSTREAMER_ROOT_ANDROID is not defined!)
+endif
+
+ifeq ($(TARGET_ARCH_ABI),armeabi)
+GSTREAMER_ROOT        := $(GSTREAMER_ROOT_ANDROID)/arm
+else ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+GSTREAMER_ROOT        := $(GSTREAMER_ROOT_ANDROID)/armv7
+else ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+GSTREAMER_ROOT        := $(GSTREAMER_ROOT_ANDROID)/arm64
+else ifeq ($(TARGET_ARCH_ABI),x86)
+GSTREAMER_ROOT        := $(GSTREAMER_ROOT_ANDROID)/x86
+else ifeq ($(TARGET_ARCH_ABI),x86_64)
+GSTREAMER_ROOT        := $(GSTREAMER_ROOT_ANDROID)/x86_64
+else
+$(error Target arch ABI not supported: $(TARGET_ARCH_ABI))
+endif
 
 GSTREAMER_NDK_BUILD_PATH  := $(GSTREAMER_ROOT)/share/gst-android/ndk-build/
 include $(GSTREAMER_NDK_BUILD_PATH)/plugins.mk
-GSTREAMER_PLUGINS         := coreelements audioconvert audioresample gio typefindfunctions videoscale volume autodetect videofilter $(GSTREAMER_PLUGINS_CODECS) $(GSTREAMER_PLUGINS_SYS) $(GSTREAMER_PLUGINS_PLAYBACK)
+
+GSTREAMER_PLUGINS         := coreelements audioconvert audioresample volume $(GSTREAMER_PLUGINS_SYS)
+GSTREAMER_EXTRA_LIBS      := -liconv -lgnutls
 G_IO_MODULES              := gnutls
-GSTREAMER_EXTRA_DEPS      := glib-2.0 gstreamer-fft-1.0
+GSTREAMER_EXTRA_DEPS      := glib-2.0 gstreamer-fft-1.0 gstreamer-base-1.0 gstreamer-audio-1.0 gstreamer-tag-1.0
 include $(GSTREAMER_NDK_BUILD_PATH)/gstreamer-1.0.mk

@@ -76,7 +76,7 @@ int SoundStream::readFloats(float **channelData, int length, int ch)
             for(pos = channelData[c%ch]; pos<end; pos++, pos1+=channels)
                 *pos = float((double(*pos1) - v8) / v8);
         }
-        delete temp;
+        delete[] temp;
         return read / channels;
     } else if(bits == 16) {
         short *temp = new short[length * channels * sizeof(short)];
@@ -113,7 +113,7 @@ int SoundStream::readFloats(float **channelData, int length, int ch)
                 *pos = float(double(*pos1) / v16);
             }
         }
-        delete temp;
+        delete [] temp;
         return read / channels / sizeof(long);
     }
     //TODO: 24bit

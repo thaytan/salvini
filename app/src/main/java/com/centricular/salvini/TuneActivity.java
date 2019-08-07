@@ -26,7 +26,7 @@ public class TuneActivity extends AppCompatActivity {
 
     static {
             System.loadLibrary("gstreamer_android");
-            System.loadLibrary("android-salvini");
+            System.loadLibrary("android_salvini");
             classInit();
     }
 
